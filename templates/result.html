@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Sentiment Analysis Results</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        h2 {
+            color: #333;
+            padding: 10px 0;
+        }
+
+        div, img {
+            margin-bottom: 20px;
+        }
+
+        button {
+            background-color: #000000; /* Green */
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+
+        table {
+            margin: auto;
+            border-collapse: collapse;
+            width: 80%;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #000000;
+            color: white;
+        }
+
+        tr:nth-child(even) {background-color: #f2f2f2;}
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h2>Sentiment Analysis Summary</h2>
+   
+    <div>{{ summary|safe }}</div>
+
+    <!-- Display the plot -->
+    <h2>Summary Plot</h2>
+    <img src="data:image/png;base64,{{ plot_url }}" alt="Sentiment Analysis Plot">
+
+    <h2>Detailed Results</h2>
+    {% for table in tables %}
+        {{ titles[loop.index] }}
+        {{ table|safe }}
+    {% endfor %}
+     <!-- Print Button -->
+     <div>
+     <button onclick="window.print()">Print Report</button>
+     </div>
+     <div></div>
+     <br>
+
+     <a href="/">Back to Home</a>
+     <br>
+     <div class="footer"> 
+       Project by Philip Obiorah & Supervised by: Prof. Hongbo Du<br>
+       Submitted to the University of Buckingham, in partial fulfilment of the requirements for the degree of Master of Science in Applied Data Science.<br>
+       © 2023 University of Buckingham. All rights reserved.<br>
+       <small>Last updated: <time datetime="2023-12-15">December 15, 2023</time>.</small>
+</body>
+</html>
+
