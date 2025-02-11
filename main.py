@@ -22,7 +22,7 @@ os.makedirs(os.environ["MPLCONFIGDIR"], exist_ok=True)
 
 app = Flask(__name__)
 
-# Load Model from Hugging Face (Ensure the model is accessible)
+# Load Model from Hugging Face
 MODEL_NAME = "philipobiorah/bert-imdb-model"
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 model = BertForSequenceClassification.from_pretrained(MODEL_NAME)
@@ -31,21 +31,16 @@ model.eval()
 
 # Function to Predict Sentiment
 def predict_sentiment(text):
-    tokens = tokenizer.encode(text, add_special_tokens=True)
-    chunks = [tokens[i:i + 512] for i in range(0, len(tokens), 512)]
+    if not text.strip():
+        return "Neutral"  # Avoid processing empty text
 
-    sentiments = []
-    for chunk in chunks:
-        inputs = tokenizer.decode(chunk, skip_special_tokens=True, clean_up_tokenization_spaces=True)
-        inputs = tokenizer(inputs, return_tensors="pt", truncation=True, padding=True, max_length=512)
-        
-        with torch.no_grad():
-            outputs = model(**inputs)
-        
-        sentiments.append(outputs.logits.argmax(dim=1).item())
-
-    majority_sentiment = Counter(sentiments).most_common(1)[0][0]
-    return 'Positive' if majority_sentiment == 1 else 'Negative'
+    inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
+    
+    with torch.no_grad():
+        outputs = model(**inputs)
+    
+    sentiment = outputs.logits.argmax(dim=1).item()
+    return "Positive" if sentiment == 1 else "Negative"
 
 @app.route('/')
 def upload_file():
@@ -53,9 +48,56 @@ def upload_file():
 
 @app.route('/analyze_text', methods=['POST'])
 def analyze_text():
-    text = request.form['text']
+    text = request.form.get('text', '').strip()
+    
+    if not text:
+        return render_template('upload.html', sentiment="Error: No text provided!")
+
     sentiment = predict_sentiment(text)
     return render_template('upload.html', sentiment=sentiment)
+
+@app.route('/uploader', methods=['POST'])
+def upload_file_post():
+    if 'file' not in request.files:
+        return "Error: No file uploaded!", 400
+
+    f = request.files['file']
+    if f.filename == '':
+        return "Error: No file selected!", 400
+
+    try:
+        data = pd.read_csv(f)
+
+        # Ensure 'review' column exists
+        if 'review' not in data.columns:
+            return "Error: CSV file must contain a 'review' column!", 400
+
+        # Predict sentiment for each review
+        data['sentiment'] = data['review'].astype(str).apply(predict_sentiment)
+
+        # Generate summary
+        sentiment_counts = data['sentiment'].value_counts().to_dict()
+        summary = f"Total Reviews: {len(data)}<br>" \
+                  f"Positive: {sentiment_counts.get('Positive', 0)}<br>" \
+                  f"Negative: {sentiment_counts.get('Negative', 0)}<br>"
+
+        # Generate sentiment plot
+        fig, ax = plt.subplots()
+        ax.bar(sentiment_counts.keys(), sentiment_counts.values(), color=['red', 'blue'])
+        ax.set_ylabel('Counts')
+        ax.set_title('Sentiment Analysis Summary')
+
+        # Save plot as an image
+        img = BytesIO()
+        plt.savefig(img, format='png', bbox_inches='tight')
+        img.seek(0)
+        plot_url = base64.b64encode(img.getvalue()).decode('utf8')
+        plt.close(fig)
+
+        return render_template('result.html', tables=[data.to_html(classes='data')], titles=data.columns.values, summary=summary, plot_url=plot_url)
+
+    except Exception as e:
+        return f"Error processing file: {str(e)}", 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860, debug=True)
