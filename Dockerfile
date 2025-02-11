@@ -1,37 +1,39 @@
-# Use an official Python runtime as a parent image
+# Use Python 3.10 for compatibility
 FROM python:3.10-slim
 
-# Set the working directory to /app
+# Set working directory
 WORKDIR /app
 
-# Install system dependencies for machine learning and data processing
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libopenblas-dev \
     libomp-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Create writable cache directories for Hugging Face and Matplotlib
-RUN mkdir -p /tmp/huggingface_cache /tmp/matplotlib
+# Create writable directories
+RUN mkdir -p /tmp/huggingface_cache /tmp/matplotlib \
+    && chmod -R 777 /tmp/huggingface_cache /tmp/matplotlib
 
-# Set environment variables for cache paths
-ENV HF_HOME=/tmp/huggingface_cache
-ENV MPLCONFIGDIR=/tmp/matplotlib
+# Set cache environment variables
+ENV HF_HOME=/tmp
+ENV TRANSFORMERS_CACHE=/tmp
+ENV MPLCONFIGDIR=/tmp
 
-# Copy requirements.txt to leverage Docker caching
+# Copy requirements file
 COPY requirements.txt /app/requirements.txt
 
 # Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-# Install PyTorch separately to ensure compatibility with the correct architecture
+# Install PyTorch separately for compatibility
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
-# Copy the rest of the application code
+# Copy application files
 COPY . /app
 
-# Expose port 7860 for Flask app
+# Expose Flask app port
 EXPOSE 7860
 
-# Run the Flask application
+# Run the application
 CMD ["python", "main.py"]
