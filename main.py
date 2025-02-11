@@ -9,6 +9,13 @@ matplotlib.use('Agg')  # Prevents GUI issues for Matplotlib
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
+from flask import send_file
+
+
+# Ensure the file exists in the current directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FILE_PATH = os.path.join(BASE_DIR, "Student_Feedback_Dataset__20_Rows_.csv")
+
 
 # Fix Permission Issues: Set Writable Directories for Hugging Face & Matplotlib
 os.environ["HF_HOME"] = "/tmp"
@@ -45,6 +52,13 @@ def predict_sentiment(text):
 @app.route('/')
 def upload_file():
     return render_template('upload.html')
+
+@app.route('/download-sample')
+def download_sample():
+    if os.path.exists(FILE_PATH):
+        return send_file(FILE_PATH, as_attachment=True)
+    else:
+        return "Error: File not found!", 404
 
 @app.route('/analyze_text', methods=['POST'])
 def analyze_text():
