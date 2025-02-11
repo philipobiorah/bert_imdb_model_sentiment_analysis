@@ -175,12 +175,18 @@
                 $("#text-progress-bar").css("width", "50%").text("Processing...");
                 $(".loading").show();
 
-                $.post("/analyze_text", { text: $("#text").val() }, function(response) {
-                    $("#text-progress-bar").css("width", "100%").text("Done!");
-                    $(".loading").hide();
-                    $("#sentiment").text(response.sentiment).attr("class", response.sentiment.toLowerCase());
-                }).fail(function() {
-                    $("#textError").text("Error: Could not analyze text.");
+                $.ajax({
+                    url: "/analyze_text",
+                    type: "POST",
+                    data: { text: $("#text").val() },
+                    success: function(response) {
+                        $("#text-progress-bar").css("width", "100%").text("Done!");
+                        $(".loading").hide();
+                        $("#sentiment").text(response.sentiment).attr("class", response.sentiment.toLowerCase()).show();
+                    },
+                    error: function(xhr) {
+                        $("#textError").text("Error: " + xhr.responseJSON.error);
+                    }
                 });
             });
 

@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, render_template
+from flask import Flask, jsonify, request, render_template
 import pandas as pd
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
@@ -65,10 +65,10 @@ def analyze_text():
     text = request.form.get('text', '').strip()
     
     if not text:
-        return render_template('upload.html', sentiment="Error: No text provided!")
+        return jsonify({"error": "No text provided!"}), 400  # Return JSON error message
 
     sentiment = predict_sentiment(text)
-    return render_template('upload.html', sentiment=sentiment)
+    return jsonify({"sentiment": sentiment})  # Return JSON response
 
 @app.route('/uploader', methods=['POST'])
 def upload_file_post():
