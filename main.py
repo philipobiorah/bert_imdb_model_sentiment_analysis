@@ -1,5 +1,5 @@
 import os
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, send_file
 import pandas as pd
 import torch
 from transformers import BertTokenizer, BertForSequenceClassification
@@ -9,7 +9,6 @@ matplotlib.use('Agg')  # Prevents GUI issues for Matplotlib
 import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
-from flask import send_file
 
 
 # Ensure the file exists in the current directory
@@ -36,18 +35,23 @@ model = BertForSequenceClassification.from_pretrained(MODEL_NAME)
 
 model.eval()
 
-# Function to Predict Sentiment
+# Function to Predict Sentiment + Confidence Score
 def predict_sentiment(text):
     if not text.strip():
-        return "Neutral"  # Avoid processing empty text
+        return {"sentiment": "Neutral", "confidence": 0.0}  # Avoid processing empty text
 
     inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=512)
     
     with torch.no_grad():
         outputs = model(**inputs)
     
-    sentiment = outputs.logits.argmax(dim=1).item()
-    return "Positive" if sentiment == 1 else "Negative"
+    probabilities = torch.nn.functional.softmax(outputs.logits, dim=1)[0]  # Convert logits to probabilities
+    sentiment_idx = probabilities.argmax().item()  # Get predicted class (0 = Negative, 1 = Positive)
+    confidence = probabilities[sentiment_idx].item() * 100  # Convert to percentage
+    
+    sentiment_label = "Positive" if sentiment_idx == 1 else "Negative"
+    
+    return {"sentiment": sentiment_label, "confidence": round(confidence, 2)}
 
 @app.route('/')
 def upload_file():
@@ -67,8 +71,8 @@ def analyze_text():
     if not text:
         return jsonify({"error": "No text provided!"}), 400  # Return JSON error message
 
-    sentiment = predict_sentiment(text)
-    return jsonify({"sentiment": sentiment})  # Return JSON response
+    result = predict_sentiment(text)
+    return jsonify(result)  # Return JSON response including confidence score
 
 @app.route('/uploader', methods=['POST'])
 def upload_file_post():
@@ -86,8 +90,10 @@ def upload_file_post():
         if 'review' not in data.columns:
             return "Error: CSV file must contain a 'review' column!", 400
 
-        # Predict sentiment for each review
-        data['sentiment'] = data['review'].astype(str).apply(predict_sentiment)
+        # Predict sentiment & confidence for each review
+        results = data['review'].astype(str).apply(predict_sentiment)
+        data['sentiment'] = results.apply(lambda x: x['sentiment'])
+        data['confidence'] = results.apply(lambda x: f"{x['confidence']}%")
 
         # Generate summary
         sentiment_counts = data['sentiment'].value_counts().to_dict()

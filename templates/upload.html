@@ -113,7 +113,7 @@
     </style>
 </head>
 <body>
-    <h1>UoB BERT-Based Sentiment Analyzer 1.0</h1>
+    <h1>BERT-Based Sentiment Analyzer 1.0</h1>
 
     <h2>-Upload File-</h2>
     <form id="upload-form" enctype="multipart/form-data">
@@ -142,10 +142,80 @@
     </form>
 
     <h2>Sentiment:</h2>
-    <p id="sentiment" class="{{ sentiment|lower }}">{{ sentiment }}</p>
+    <p id="sentiment" class="hidden"></p>
+    <p id="confidence" class="hidden"></p>
+    
+    <script>
+        $(document).ready(function() {
+            // Handle Text Analysis
+            $("#text-form").submit(function(event) {
+                event.preventDefault();
+                $("#text-progress-bar").parent().show();
+                $("#text-progress-bar").css("width", "50%").text("Processing...");
+                $(".loading").show();
+    
+                $.ajax({
+                    url: "/analyze_text",
+                    type: "POST",
+                    data: { text: $("#text").val() },
+                    success: function(response) {
+                        $("#text-progress-bar").css("width", "100%").text("Done!");
+                        $(".loading").hide();
+                        $("#sentiment").text("Sentiment: " + response.sentiment).attr("class", response.sentiment.toLowerCase()).show();
+                        $("#confidence").text("Confidence: " + response.confidence + "%").show();
+                    },
+                    error: function(xhr) {
+                        $("#textError").text("Error: " + xhr.responseJSON.error);
+                    }
+                });
+            });
+    
+            // Handle File Upload
+            $("#upload-form").submit(function(event) {
+                event.preventDefault();
+                let formData = new FormData(this);
+    
+                $("#upload-progress-bar").parent().show();
+                $("#upload-progress-bar").css("width", "50%").text("Uploading...");
+                $(".loading").show();
+    
+                $.ajax({
+                    url: "/uploader",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        $("#upload-progress-bar").css("width", "100%").text("Done!");
+                        $(".loading").hide();
+                        document.open();
+                        document.write(response);
+                        document.close();
+                    },
+                    error: function() {
+                        $("#fileError").text("Error: Could not upload file.");
+                    }
+                });
+            });
+        });
+    
+        window.onload = function() {
+            var sentimentElement = document.getElementById('sentiment');
+            var confidenceElement = document.getElementById('confidence');
+            if (sentimentElement && sentimentElement.textContent.trim() !== "") {
+                sentimentElement.classList.remove("hidden");
+                confidenceElement.classList.remove("hidden");
+            }
+        };
+    </script>
+    
 
     <!-- File Upload Specifications -->
     <div class="file-upload-specifications">
+        <a href="/download-sample">
+            <h3>📥 Download and use sample data </h3>
+        </a>
+        
         <h3>📄 File Upload Specifications:</h3>
         <p>Please ensure your file adheres to the following specifications for successful analysis:</p>
         <ul>
