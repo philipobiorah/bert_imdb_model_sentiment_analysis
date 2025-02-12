@@ -150,10 +150,17 @@
             // Handle Text Analysis
             $("#text-form").submit(function(event) {
                 event.preventDefault();
+
+                // Clear old sentiment and confidence values
+                $("#sentiment").text("").hide();
+                $("#confidence").text("").hide();
+                $("#textError").text("");
+
+                // Show progress bar
                 $("#text-progress-bar").parent().show();
                 $("#text-progress-bar").css("width", "50%").text("Processing...");
                 $(".loading").show();
-    
+
                 $.ajax({
                     url: "/analyze_text",
                     type: "POST",
@@ -169,16 +176,16 @@
                     }
                 });
             });
-    
+
             // Handle File Upload
             $("#upload-form").submit(function(event) {
                 event.preventDefault();
                 let formData = new FormData(this);
-    
+
                 $("#upload-progress-bar").parent().show();
                 $("#upload-progress-bar").css("width", "50%").text("Uploading...");
                 $(".loading").show();
-    
+
                 $.ajax({
                     url: "/uploader",
                     type: "POST",
@@ -198,17 +205,7 @@
                 });
             });
         });
-    
-        window.onload = function() {
-            var sentimentElement = document.getElementById('sentiment');
-            var confidenceElement = document.getElementById('confidence');
-            if (sentimentElement && sentimentElement.textContent.trim() !== "") {
-                sentimentElement.classList.remove("hidden");
-                confidenceElement.classList.remove("hidden");
-            }
-        };
     </script>
-    
 
     <!-- File Upload Specifications -->
     <div class="file-upload-specifications">
@@ -226,81 +223,8 @@
             <li><strong>Encoding:</strong> UTF-8 encoding is recommended for compatibility.</li>
             <li><strong>Example:</strong> The first column should be named <code>'review'</code> and contain the review text. Additional columns are optional and will be ignored.</li>
         </ul>
-        <p>If your file does not meet these specifications, - the analysis may not be performed correctly.</p>
-    
-        <a href="/download-sample">
-            <h3>📥 Download Sample Dataset</h3>
-        </a>
-        
-
-
+        <p>If your file does not meet these specifications, the analysis may not be performed correctly.</p>
     </div>
-
-    <script>
-        $(document).ready(function() {
-            // Handle Text Analysis
-            $("#text-form").submit(function(event) {
-                event.preventDefault();
-                $("#text-progress-bar").parent().show();
-                $("#text-progress-bar").css("width", "50%").text("Processing...");
-                $(".loading").show();
-
-                $.ajax({
-                    url: "/analyze_text",
-                    type: "POST",
-                    data: { text: $("#text").val() },
-                    success: function(response) {
-                        $("#text-progress-bar").css("width", "100%").text("Done!");
-                        $(".loading").hide();
-                        $("#sentiment").text(response.sentiment).attr("class", response.sentiment.toLowerCase()).show();
-                    },
-                    error: function(xhr) {
-                        $("#textError").text("Error: " + xhr.responseJSON.error);
-                    }
-                });
-            });
-
-            // Handle File Upload
-            $("#upload-form").submit(function(event) {
-                event.preventDefault();
-                let formData = new FormData(this);
-
-                $("#upload-progress-bar").parent().show();
-                $("#upload-progress-bar").css("width", "50%").text("Uploading...");
-                $(".loading").show();
-
-                $.ajax({
-                    url: "/uploader",
-                    type: "POST",
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        $("#upload-progress-bar").css("width", "100%").text("Done!");
-                        $(".loading").hide();
-                        document.open();
-                        document.write(response);
-                        document.close();
-                    },
-                    error: function() {
-                        $("#fileError").text("Error: Could not upload file.");
-                    }
-                });
-            });
-        });
-
-        window.onload = function() {
-            var sentimentElement = document.getElementById('sentiment');
-            if (sentimentElement) {
-                var sentiment = sentimentElement.textContent.trim().toLowerCase();
-                if (sentiment === 'positive') {
-                    sentimentElement.className = 'positive';
-                } else if (sentiment === 'negative') {
-                    sentimentElement.className = 'negative';
-                }
-            }
-        };
-    </script>
 
     <div class="footer">
         Project by Philip Obiorah & Supervised by: Prof. Hongbo Du<br>
